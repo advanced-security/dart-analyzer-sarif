@@ -1,0 +1,24 @@
+name: 'Dart Analyzer SARIF'
+description: 'Convert Dart Analyzer or Flutter Analyzer CLI text output to SARIF'
+branding:
+  icon: 'shield'
+  color: 'blue'
+inputs:
+  sourceroot:
+    description: 'Path to the root of the source code'
+    default: $GITHUB_WORKSPACE
+  input:
+    description: 'Path to the `dart analyze` text output'
+    required: true
+  output:
+    description: 'Path to the output SARIF file'
+    required: false
+runs:
+  using: "composite"
+  steps:
+    - name: dart_analyzer_sarif
+      run: |
+        unset LD_PRELOAD
+        unset PYTHONSTARTUP
+        python3 "${{ github.action_path }}/dart_analyzer_sarif.py" "${{ inputs.input }}" "${{ inputs.output }}" "${{ inputs.sourceroot }}" --repo-url "${{ github.server_url }}/${{ github.repository }}" --branch "${{ github.ref }}" --revision-id "${{ github.sha }}"
+      shell: bash

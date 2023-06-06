@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-
-"""Parse `dart analyze` output and convert to SARIF format."""
+"""Parse `dart analyze` or `flutter analyze` output and convert to SARIF format."""
 
 import argparse
 import json
 import logging
 import sys
+from pathlib import Path
 
 
 LOG = logging.getLogger(__name__)
@@ -26,9 +26,7 @@ class DartAnalyzeIssue:
         """Convert the issue to SARIF format."""
         return {
             'level': self.severity,
-            'locations': [
-                self.location.to_sarif()
-            ],
+            'locations': [self.location.to_sarif()],
             'message': {
                 'text': self.message
             },
@@ -38,11 +36,11 @@ class DartAnalyzeIssue:
 
 class Location:
     """A path, line and column."""
-    
+
     def __init__(self, location: str) -> None:
         """Initialize the location."""
         parts = location.split(':')
-        
+
         self.column = int(parts.pop())
         self.line = int(parts.pop())
         self.path = ':'.join(parts)
@@ -52,7 +50,8 @@ class Location:
         return {
             'physicalLocation': {
                 'artifactLocation': {
-                    'uri': self.path
+                    'uri': self.path,
+                    'uriBaseId': 'SRCROOT'
                 },
                 'region': {
                     'startLine': self.line,
@@ -62,19 +61,24 @@ class Location:
         }
 
 
-def parse_args(parser: argparse.ArgumentParser) -> argparse.Namespace:
+def add_args(parser: argparse.ArgumentParser) -> None:
     """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description='Convert dart analyze output to SARIF format')
-    parser.add_argument('--input-file', required=True, help='dart analyze output file')
-    parser.add_argument('--output-file', default=None, required=False, help='SARIF output file')
-    parser.add_argument('--debug', action='store_true', help='enable debug logging')
-    return parser.parse_args()
+    parser.add_argument('input_file', help='dart analyze output file')
+    parser.add_argument('output_file', help='SARIF output file')
+    parser.add_argument('source_root', help='Root path of the source code')
+    parser.add_argument('--repo-uri', help="URI of the repository")
+    parser.add_argument('--revision-id', help="Revision ID of the repository")
+    parser.add_argument('--branch', help="Branch of the repository")
+    parser.add_argument('--debug',
+                        action='store_true',
+                        help='enable debug logging')
 
 
 def main() -> None:
     """Main function."""
     parser = argparse.ArgumentParser(description=__doc__)
-    args = parse_args(parser)
+    add_args(parser)
+    args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO)
 
@@ -95,29 +99,49 @@ def main() -> None:
             results.append(data.to_sarif())
             rules.add(data.rule)
 
+    # make version control provenance
+    vcp = {}
+    if args.repo_uri is not None:
+        vcp['repositoryUri'] = args.repo_uri
+    if args.revision_id is not None:
+        vcp['revisionId'] = args.revision_id
+    if args.branch is not None:
+        vcp['branch'] = args.branch
+
     # write out the results in SARIF format
-    with open(args.output_file, 'w') if args.output_file is not None else sys.stdout as f:
-        json.dump({
-            'version': '2.1.0',
-            'runs': [
-                {
+    with open(args.output_file,
+              'w') if args.output_file is not None else sys.stdout as f:
+        json.dump(
+            {
+                'version':
+                '2.1.0',
+                'runs': [{
+                    'versionControlProvenance': [vcp],
+                    'originalUriBaseIds': {
+                        'SRCROOT': {
+                            "uri": Path(args.source_root).as_uri(),
+                            "description": {
+                                "text":
+                                "The root directory for the source files."
+                            }
+                        }
+                    },
                     'tool': {
                         'driver': {
                             'name': 'dart analyze',
-                            'informationUri': 'https://dart.dev/tools/dart-analyze',
-                            'rules': [
-                                {
-                                    'id': rule,
-                                    'name': rule
-                                }
-                                for rule in rules
-                            ]
+                            'informationUri':
+                            'https://dart.dev/tools/dart-analyze',
+                            'rules': [{
+                                'id': rule,
+                                'name': rule
+                            } for rule in rules]
                         }
                     },
                     'results': results
-                }
-            ]
-        }, f, indent=2)
+                }]
+            },
+            f,
+            indent=2)
 
 
 if __name__ == "__main__":
