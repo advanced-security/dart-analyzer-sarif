@@ -20,5 +20,5 @@ runs:
       run: |
         unset LD_PRELOAD
         unset PYTHONSTARTUP
-        python3 "${{ github.action_path }}/dart_analyzer_sarif.py" "${{ inputs.input }}" "${{ inputs.output }}" "${{ inputs.sourceroot }}" --repo-url "${{ github.server_url }}/${{ github.repository }}" --branch "${{ github.ref }}" --revision-id "${{ github.sha }}"
+        python3 "${{ github.action_path }}/dart_analyzer_sarif.py" "${{ inputs.input }}" "${{ inputs.output }}" "${{ inputs.sourceroot }}" --repo-uri "${{ github.server_url }}/${{ github.repository }}" --branch "${{ github.ref }}" --revision-id "${{ github.sha }}"
       shell: bash
