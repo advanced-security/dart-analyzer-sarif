@@ -46,10 +46,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - uses: dart-lang/setup-dart@v1
       - name: Dart Analyze
-        run: dart analyze > dart_analyze.txt
+        run: dart analyze > dart_analyze.txt || true
       - name: Dart Analyze to SARIF
-        uses: advanced-security/dart-analyzer-sarif@v1
+        uses: advanced-security/dart-analyzer-sarif@main
         with:
           input: dart_analyze.txt
           output: dart_analyze.sarif
