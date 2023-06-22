@@ -8,7 +8,7 @@ Run `dart analyze` or `flutter analyze`, then give their output to this Action a
 
 ```yaml
 - name: Dart Analyze to SARIF
-  uses: advanced-security/dart-analyzer-sarif@v1
+  uses: advanced-security/dart-analyzer-sarif@main
     with:
         input: dart_analyze.txt
         output: dart_analyze.sarif
