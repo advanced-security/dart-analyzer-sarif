@@ -24,8 +24,12 @@ class DartAnalyzeIssue:
 
     def to_sarif(self) -> dict:
         """Convert the issue to SARIF format."""
+        if self.severity == "info":
+            level = "note"
+        else:
+            level = self.severity
         return {
-            'level': self.severity,
+            'level': level,
             'locations': [self.location.to_sarif()],
             'message': {
                 'text': self.message
