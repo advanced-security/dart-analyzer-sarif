@@ -45,7 +45,7 @@ jobs:
     name: Dart Analyzer to SARIF
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - uses: dart-lang/setup-dart@v1
       - name: Dart Analyze
         run: dart analyze > dart_analyze.txt || true
@@ -55,7 +55,7 @@ jobs:
           input: dart_analyze.txt
           output: dart_analyze.sarif
       - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v1
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: dart_analyze.sarif
 ```
