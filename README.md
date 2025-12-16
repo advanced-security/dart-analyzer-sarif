@@ -18,6 +18,7 @@ Run `dart analyze` or `flutter analyze`, then give their output to this Action a
 
 * `input` - The path to the input file, containing the output of `dart analyze` or `flutter analyze`
 * `output` - The path to the output file, containing the SARIF output. Default: `dart_analyze.sarif`
+* `working-directory` - (Optional) Working directory relative to the repository root where `dart analyze` was run. This is useful for monorepo scenarios where you analyze a subdirectory.
 
 ## Full sample workflow
 
@@ -54,6 +55,37 @@ jobs:
         with:
           input: dart_analyze.txt
           output: dart_analyze.sarif
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: dart_analyze.sarif
+```
+
+## Monorepo Support
+
+When running `dart analyze` on a subdirectory in a monorepo, use the `working-directory` parameter to ensure file paths in the SARIF output are correct relative to the repository root:
+
+```yaml
+jobs:
+  dart-analyzer:
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    runs-on: ubuntu-latest
+    name: Dart Analyzer to SARIF
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      - name: Dart Analyze
+        run: dart analyze path/to/app > dart_analyze.txt || true
+      - name: Dart Analyze to SARIF
+        uses: advanced-security/dart-analyzer-sarif@main
+        with:
+          input: dart_analyze.txt
+          output: dart_analyze.sarif
+          working-directory: path/to/app
       - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@v3
         with:
