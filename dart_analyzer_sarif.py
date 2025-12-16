@@ -55,9 +55,10 @@ class Location:
         # If working_directory is provided and path is relative, prepend it
         uri = self.path
         if self.working_directory and not Path(self.path).is_absolute():
-            # Normalize the working directory (remove trailing slash if present)
-            wd = self.working_directory.rstrip('/')
-            uri = f"{wd}/{self.path}"
+            # Use Path for cross-platform path handling
+            # Convert to forward slashes for URI consistency in SARIF
+            combined_path = Path(self.working_directory) / self.path
+            uri = combined_path.as_posix()
         
         return {
             'physicalLocation': {
