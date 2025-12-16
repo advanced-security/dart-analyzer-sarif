@@ -6,6 +6,7 @@ import json
 import logging
 import sys
 from pathlib import Path
+from typing import Optional
 
 
 LOG = logging.getLogger(__name__)
@@ -14,7 +15,7 @@ LOG = logging.getLogger(__name__)
 class DartAnalyzeIssue:
     """Represents a single issue from `dart analyze`."""
 
-    def __init__(self, line: str, working_directory: str = None) -> None:
+    def __init__(self, line: str, working_directory: Optional[str] = None) -> None:
         """Parse a line of `dart analyze` output."""
         parts = line.strip().split(' - ', maxsplit=3)
         if len(parts) != 4:
@@ -41,7 +42,7 @@ class DartAnalyzeIssue:
 class Location:
     """A path, line and column."""
 
-    def __init__(self, location: str, working_directory: str = None) -> None:
+    def __init__(self, location: str, working_directory: Optional[str] = None) -> None:
         """Initialize the location."""
         parts = location.split(':')
 
@@ -54,7 +55,7 @@ class Location:
         """Convert the location to SARIF format."""
         # If working_directory is provided and path is relative, prepend it
         uri = self.path
-        if self.working_directory and not Path(self.path).is_absolute():
+        if self.working_directory and self.path.strip() and not Path(self.path).is_absolute():
             # Use Path for cross-platform path handling
             # Convert to forward slashes for URI consistency in SARIF
             combined_path = Path(self.working_directory) / self.path
