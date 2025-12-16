@@ -6,6 +6,7 @@ import json
 import logging
 import sys
 from pathlib import Path
+from typing import Optional
 
 
 LOG = logging.getLogger(__name__)
@@ -14,13 +15,13 @@ LOG = logging.getLogger(__name__)
 class DartAnalyzeIssue:
     """Represents a single issue from `dart analyze`."""
 
-    def __init__(self, line: str) -> None:
+    def __init__(self, line: str, working_directory: Optional[str] = None) -> None:
         """Parse a line of `dart analyze` output."""
         parts = line.strip().split(' - ', maxsplit=3)
         if len(parts) != 4:
             raise ValueError("Not a valid dart analyze line")
         self.severity, location, self.message, self.rule = parts
-        self.location = Location(location)
+        self.location = Location(location, working_directory)
 
     def to_sarif(self) -> dict:
         """Convert the issue to SARIF format."""
@@ -41,20 +42,29 @@ class DartAnalyzeIssue:
 class Location:
     """A path, line and column."""
 
-    def __init__(self, location: str) -> None:
+    def __init__(self, location: str, working_directory: Optional[str] = None) -> None:
         """Initialize the location."""
         parts = location.split(':')
 
         self.column = int(parts.pop())
         self.line = int(parts.pop())
         self.path = ':'.join(parts)
+        self.working_directory = working_directory
 
     def to_sarif(self) -> dict:
         """Convert the location to SARIF format."""
+        # If working_directory is provided and path is relative, prepend it
+        uri = self.path
+        if self.working_directory and self.path.strip() and not Path(self.path).is_absolute():
+            # Use Path for cross-platform path handling
+            # Convert to forward slashes for URI consistency in SARIF
+            combined_path = Path(self.working_directory) / self.path
+            uri = combined_path.as_posix()
+        
         return {
             'physicalLocation': {
                 'artifactLocation': {
-                    'uri': self.path,
+                    'uri': uri,
                     'uriBaseId': 'SRCROOT'
                 },
                 'region': {
@@ -73,6 +83,8 @@ def add_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('--repo-uri', help="URI of the repository")
     parser.add_argument('--revision-id', help="Revision ID of the repository")
     parser.add_argument('--branch', help="Branch of the repository")
+    parser.add_argument('--working-directory', 
+                        help="Working directory relative to source root where dart analyze was run (for monorepo support)")
     parser.add_argument('--debug',
                         action='store_true',
                         help='enable debug logging')
@@ -96,7 +108,7 @@ def main() -> None:
     with open(args.input_file, 'r') as f:
         for line in f.readlines():
             try:
-                data = DartAnalyzeIssue(line)
+                data = DartAnalyzeIssue(line, args.working_directory)
             except ValueError:
                 LOG.debug("Skipping invalid line: %s", line)
                 continue
